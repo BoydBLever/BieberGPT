@@ -1,6 +1,5 @@
 import os
-# from langchain.chat_models import ChatOpenAI
-from apiclient.discovery import build
+from apiclient.discovery import build #youtube api
 import http.client
 from langchain import LLMMathChain, OpenAI
 from langchain.agents import initialize_agent, load_tools
@@ -10,20 +9,25 @@ from langchain import PromptTemplate
 from langchain.chains import LLMChain
 import re
 
-#sendgrid
+#sendgrid send email plan
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import (Mail)
 
+#python web app deployed: https://biebergpt-outsidellms.streamlit.app/
 import streamlit as st
 
+#run locally 
 from dotenv import dotenv_values
 import json 
 
-st.title('BieberGPT')
-st.subheader('enter details below')
-
+st.title('BieberGPT🤖🎶')
+st.image('https://s.france24.com/media/display/ba80de5a-c06a-11eb-9594-005056bf87d6/w:1280/p:1x1/000_1OG6IB.jpg',width=100)
+st.subheader('enter details below to get an AI-generated Bieber song and song from a select OSL performer🎤 according to your mood! You will also get emailed📧 a concert of an OSL performer from the Jambase API')
+st.image('https://storage.tally.so/d9947039-48cb-4392-8636-1cacdf028a21/Frame-2-4-.png',width=100 )
+st.write("Made with ❤️ at Outside🎶 LLMs⛓️ 2023")
+st.write("[Code on GitHub](https://github.com/elizabethsiegle/biebergpt-streamlit)")
 config = dotenv_values(".env")
-os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"] #config.get('OPENAI_API_KEY')
+os.environ["OPENAI_API_KEY"] = config.get('OPENAI_API_KEY')
 llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo-0613")
 llm_math_chain = LLMMathChain.from_llm(llm=llm, verbose=True)
 #validate email
@@ -42,13 +46,15 @@ with st.form('my_form'):
         'What mood would you like to feel by listening to music?',
         ("upbeat", "pensive","sad")
     )
+    location = st.selectbox('What location would you like to see concerts in?',
+                            ("San Francisco", "Los Angeles"))
     submitted = st.form_submit_button('Submit')
     if submitted:
         if(validate_email(email)):
             songFromJBLLM = agent.run(f"What is a Justin Bieber song relating to {mood}")
             # songFromEmpire = list of artists ??
             # check out upcoming concerts from Jambase
-            DEVELOPER_KEY = st.secrets["YOUTUBE_API_KEY"] # REPLACE IF RUNNING LOCALLY: config.get('YOUTUBE_API_KEY')
+            DEVELOPER_KEY = config.get('YOUTUBE_API_KEY')
             YOUTUBE_API_SERVICE_NAME = "youtube"
             YOUTUBE_API_VERSION = "v3"
             youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, 
@@ -81,7 +87,7 @@ with st.form('my_form'):
                 artistByMood = "Nala"
             print(f"artistByMood {artistByMood}")
             conn = http.client.HTTPSConnection("www.jambase.com") 
-            jambaseapikey = st.secrets["JAMBASE_API_KEY"]
+            jambaseapikey = "fc96baa4-a173-419e-aece-55224a9205dc"
             conn.request("GET", f"/jb-api/v1/events?eventType=concerts&artistName={artistByMood}&apikey={jambaseapikey}", headers=headers)
             jamurl = f"/jb-api/v1/events?eventType=concerts&artistName={artistByMood}&apikey={jambaseapikey}"
             res = conn.getresponse()
@@ -94,15 +100,35 @@ with st.form('my_form'):
             first_event_ticket_url = json_data["events"][0]["offers"][0]["url"]
             st.success(f"You should go to {artistByMood}'s concert on {first_event_startdate} at {first_event_ticket_url}")
             #email reminder for show
+            #hardcoded bc Jambase API does not include SF concerts for Nala or Justin Jay when it should and whem 
             message = Mail(
-            from_email='music_mood@osllms.com',
-            to_emails=email,
-            subject=f'Concert plan based on your mood',
-            html_content=f'<strong>Have fun at the concert!</strong>!\n\n{artistByMood} on {first_event_startdate} at {first_event_ticket_url}')
-            os.environ["SENDGRID_API_KEY"] = st.secrets["SENDGRID_API_KEY"] #config.get('SENDGRID_API_KEY')
+                from_email='music_mood@osllms.com',
+                to_emails=email,
+                subject=f'Concert plan based on your mood',
+                html_content=f'<strong>Have fun at the concert!</strong>!\n\n{artistByMood} on {first_event_startdate} at {first_event_ticket_url} or in SF on Friday, August 11: https://www.eventbrite.com/e/outside-lands-night-show-vnssa-nala-martyn-bootyspoon-tickets-660769749107')
+            if artistByMood == "Nala":
+                message = Mail(
+                    from_email='music_mood@osllms.com',
+                    to_emails=email,
+                    subject=f'Concert plan based on your mood',
+                    html_content=f'<strong>Have fun at the concert!</strong>!\n\n{artistByMood} on {first_event_startdate} at {first_event_ticket_url} or in SF on Friday, August 11: https://www.eventbrite.com/e/outside-lands-night-show-vnssa-nala-martyn-bootyspoon-tickets-660769749107')
+            elif artistByMood == "justin+jay":
+                message = Mail(
+                    from_email='music_mood@osllms.com',
+                    to_emails=email,
+                    subject=f'Concert plan based on your mood',
+                    html_content=f'<strong>Have fun at the concert!</strong>!\n\n{artistByMood} on {first_event_startdate} at {first_event_ticket_url} or in SF on Friday, August 11: https://www.ticketmaster.com/event/1C005ED0CEF55C87')
+            else:
+                Mail(
+                    from_email='music_mood@osllms.com',
+                    to_emails=email,
+                    subject=f'Concert plan based on your mood',
+                    html_content=f'<strong>Have fun at the concert!</strong>!\n\nFor some reason, an OSL performer was not found for you')
+            os.environ["SENDGRID_API_KEY"] = "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"
             sg = SendGridAPIClient()
             response = sg.send(message)
             print("Message Sent!")
         else:
             st.warning("Check email validity")
+st.write("This uses the JamBase API to get concert data, LangChain PromptTemplates (and a chain and agent), Twilio SendGrid, YouTube API, and Streamlit in Python")
 
