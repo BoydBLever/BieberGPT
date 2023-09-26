@@ -44,7 +44,7 @@ with st.form('my_form'):
     email = st.text_input('Email to send concert plan to')
     mood = st.selectbox(
         'What mood would you like to feel by listening to music?',
-        ("upbeat", "pensive","sad")
+        ("upbeat", "pensive22","sad")
     )
     location = st.selectbox('What location would you like to see concerts in?',
                             ("San Francisco", "Los Angeles"))
@@ -104,7 +104,7 @@ with st.form('my_form'):
             message = Mail(
                 from_email='music_mood@osllms.com',
                 to_emails=email,
-                subject=f'Concert plan based on your mood',
+                subject=f'Concert plan based on the mood you want',
                 html_content=f'<strong>Have fun at the concert!</strong>!\n\n{artistByMood} on {first_event_startdate} at {first_event_ticket_url} or in SF on Friday, August 11: https://www.eventbrite.com/e/outside-lands-night-show-vnssa-nala-martyn-bootyspoon-tickets-660769749107')
             if artistByMood == "Nala":
                 message = Mail(
